@@ -9,16 +9,12 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
-    /**
-     * Display a listing of the tasks with optional search and filters.
-     */
     public function index(Request $request)
     {
         $user = $request->user();
 
         $query = Task::where('user_id', $user->id);
 
-        // Search by title or description
         if ($search = $request->query('q')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
@@ -26,7 +22,6 @@ class TaskController extends Controller
             });
         }
 
-        // Filter by status, priority, due_date
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
@@ -37,23 +32,19 @@ class TaskController extends Controller
             $query->whereDate('due_date', $dueDate);
         }
 
-        // Sort by due date and paginate
-        $tasks = $query->orderBy('due_date')->paginate(10);
+        $tasks = $query->orderBy('due_date');
 
         return response()->json($tasks);
     }
 
-    /**
-     * Store a newly created task.
-     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
             'status'      => 'in:pending,in_progress,done',
             'priority'    => 'in:low,medium,high',
-            'due_date'    => 'nullable|date',
+            'due_date'    => 'required|date',
         ]);
 
         if ($validator->fails()) {
@@ -68,9 +59,6 @@ class TaskController extends Controller
         return response()->json($task, 201);
     }
 
-    /**
-     * Display a specific task.
-     */
     public function show(Request $request, Task $task)
     {
         $this->authorizeTask($request->user(), $task);
@@ -78,9 +66,6 @@ class TaskController extends Controller
         return response()->json($task);
     }
 
-    /**
-     * Update a specific task.
-     */
     public function update(Request $request, Task $task)
     {
         $this->authorizeTask($request->user(), $task);
@@ -92,9 +77,6 @@ class TaskController extends Controller
         return response()->json($task);
     }
 
-    /**
-     * Delete a specific task.
-     */
     public function destroy(Request $request, Task $task)
     {
         $this->authorizeTask($request->user(), $task);
@@ -104,9 +86,6 @@ class TaskController extends Controller
         return response()->json(['message' => 'Task deleted successfully.']);
     }
 
-    /**
-     * Ensure the authenticated user owns the task.
-     */
     protected function authorizeTask($user, Task $task)
     {
         if ($task->user_id !== $user->id) {

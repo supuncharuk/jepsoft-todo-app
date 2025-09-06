@@ -16,7 +16,6 @@ Route::post('/login',[AuthController::class,'login']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('/tasks/list', [TaskController::class, 'index']); // List tasks
     Route::post('/tasks/create', [TaskController::class, 'store']); // Create task
-    Route::get('/tasks/show/{task}', [TaskController::class, 'show']); // Show task
     Route::put('/tasks/update/{task}', [TaskController::class, 'update']); // Update task
     Route::delete('/tasks/delete/{task}', [TaskController::class, 'destroy']); // Delete task
     
