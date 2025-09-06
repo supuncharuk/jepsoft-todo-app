@@ -8,6 +8,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
@@ -25,9 +27,16 @@ const Register = () => {
         password_confirmation: passwordConfirmation,
       });
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      navigate("/tasks");
+      setSuccess("Registration successful! Redirecting to login page...");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
+
+      setName("");
+      setEmail("");
+      setPassword("");
+      setPasswordConfirmation("");
     } catch (err) {
       if (err.response && err.response.data.errors) {
         const errors = err.response.data.errors;
@@ -52,6 +61,12 @@ const Register = () => {
         {error && (
           <div className="mb-4 text-red-600 font-medium text-center bg-red-100 dark:bg-red-200 p-2 rounded">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 text-green-700 font-medium text-center bg-green-100 dark:bg-green-200 p-2 rounded">
+            {success}
           </div>
         )}
 
