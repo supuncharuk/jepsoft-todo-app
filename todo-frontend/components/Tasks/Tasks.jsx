@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const Tasks = () => {
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  });
   const [tasks, setTasks] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(
-    () => localStorage.getItem('darkMode') === 'true'
-  );
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [error, setError] = useState('');
@@ -66,35 +67,45 @@ const Tasks = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      if (editingTask) {
-        const res = await axios.put(
-          `http://localhost:8000/api/tasks/update/${editingTask.id}`,
-          form,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setTasks(tasks.map((t) => (t.id === editingTask.id ? res.data : t)));
-      } else {
-        const res = await axios.post(
-          'http://localhost:8000/api/tasks/create',
-          form,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setTasks([res.data, ...tasks]);
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError('');
+
+      // Validate all required fields
+      const requiredFields = ['title', 'description', 'status', 'priority', 'due_date'];
+      const emptyFields = requiredFields.filter(field => !form[field]);
+      
+      if (emptyFields.length > 0) {
+        setError(`Please fill in all required fields: ${emptyFields.join(', ')}`);
+        return;
       }
-      setShowModal(false);
-      resetForm();
-    } catch (err) {
-      setError(
-        err.response?.data?.message || 'An error occurred. Please try again.'
-      );
-    }
-  };
+
+      try {
+        if (editingTask) {
+          const res = await axios.put(
+            `http://localhost:8000/api/tasks/update/${editingTask.id}`,
+            form,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setTasks(tasks.map((t) => (t.id === editingTask.id ? res.data : t)));
+        } else {
+          const res = await axios.post(
+            'http://localhost:8000/api/tasks/create',
+            form,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          setTasks([res.data, ...tasks]);
+        }
+        setShowModal(false);
+        resetForm();
+      } catch (err) {
+        setError(
+          err.response?.data?.message || 'An error occurred. Please try again.'
+        );
+      }
+    };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -105,13 +116,14 @@ const Tasks = () => {
   const openModal = (task = null) => {
     setError('');
     if (task) {
+      const formattedDate = task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '';
       setEditingTask(task);
       setForm({
         title: task.title,
         description: task.description || '',
         status: task.status,
         priority: task.priority,
-        due_date: task.due_date || '',
+        due_date: formattedDate || '',
       });
     } else {
       resetForm();
@@ -144,24 +156,36 @@ const Tasks = () => {
     return `px-2 py-1 rounded-full text-xs font-medium ${badges[priority]}`;
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+  };
+
   return (
     <div
       className='min-h-screen from-blue-100 to-indigo-100 transition-colors duration-200'
     >
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+        <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            My Tasks
+            Tasks Manager
           </h1>
-          <div className="flex gap-3">
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Logout
-            </button>
-          </div>
+          {user && (
+            <p className="mt-1 text-gray-600 dark:text-gray-400">
+              Welcome, {user.name || user.email}
+            </p>
+          )}
         </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="lg:col-span-2">
@@ -275,7 +299,7 @@ const Tasks = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                        {task.due_date || '-'}
+                        {formatDate(task.due_date) || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <button
@@ -329,6 +353,7 @@ const Tasks = () => {
                     value={form.description}
                     onChange={handleFormChange}
                     rows="3"
+                    required
                     className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -336,6 +361,7 @@ const Tasks = () => {
                   <select
                     name="status"
                     value={form.status}
+                    required
                     onChange={handleFormChange}
                     className="px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
@@ -347,6 +373,7 @@ const Tasks = () => {
                     name="priority"
                     value={form.priority}
                     onChange={handleFormChange}
+                    required
                     className="px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="low">🟢 Low</option>
@@ -360,6 +387,7 @@ const Tasks = () => {
                     name="due_date"
                     value={form.due_date}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
