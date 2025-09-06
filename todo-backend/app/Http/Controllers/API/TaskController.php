@@ -32,7 +32,7 @@ class TaskController extends Controller
             $query->whereDate('due_date', $dueDate);
         }
 
-        $tasks = $query->orderBy('due_date');
+        $tasks = $query->orderBy('due_date')->paginate(10);
 
         return response()->json($tasks);
     }
@@ -57,13 +57,6 @@ class TaskController extends Controller
         ));
 
         return response()->json($task, 201);
-    }
-
-    public function show(Request $request, Task $task)
-    {
-        $this->authorizeTask($request->user(), $task);
-
-        return response()->json($task);
     }
 
     public function update(Request $request, Task $task)
