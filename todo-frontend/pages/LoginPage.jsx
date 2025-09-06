@@ -4,7 +4,7 @@ import "../src/index.css";
 
 const LoginPage = () => {
   return (
-    <div className="">
+    <div className="bg-gray-100 dark:bg-gray-900">
       <Login />
     </div>
   );
