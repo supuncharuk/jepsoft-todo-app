@@ -4,7 +4,7 @@ import "../src/index.css";
 
 const Dashboard = () => {
   return (
-    <div className="bg-gray-100 dark:bg-gray-900">
+    <div className="bg-gray-200 dark:bg-gray-900">
       <Tasks />
     </div>
   );
